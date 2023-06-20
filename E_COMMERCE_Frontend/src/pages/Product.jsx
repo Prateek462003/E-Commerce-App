@@ -1,10 +1,14 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import styled from "styled-components"
 import Navbar from '../components/Navbar'
 import Announcement from '../components/Announcement'
 import Newsletter from '../components/Newsletter'
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
+import { useLocation } from 'react-router-dom'
+import { publicRequest } from '../requestMethods'
+import { addProduct } from '../redux/cartRedux'
+import { useDispatch } from 'react-redux'
 
 const Container = styled.div``
 const Wrapper = styled.div`
@@ -97,49 +101,78 @@ const Button = styled.button`
     }
 `
 const Product = () => {
+  const location = useLocation();
+  const id = location.pathname.split("/")[2];
+  const [product, setProduct] = useState({});
+  const [amount, setAmount] = useState(1);
+  const [color, setColor] = useState("");
+  const [size, setSize] = useState("");
+  const dispatch = useDispatch;
+
+  const handleClick = () =>{
+    // addProdct and update the cart
+    dispatch(addProduct({...product, amount, color, size}));  
+  }
+  const handleAmount=(type)=>{
+    if(type === "remove"){
+      amount > 1 && setAmount((prev)=>(
+        prev - 1
+      ))
+    }else{
+      setAmount((prev)=>(
+        prev + 1
+      ));
+    }
+  }
+  useEffect( ()=>{
+    const getProduct = async() =>{
+      try{
+        const res = await publicRequest.get("/product/find/" +id);
+        setProduct(res.data);
+      }catch(err){
+        console.log(err);
+      }
+    }
+    getProduct();
+  }, [id]);
   return (
     <Container>
     <Navbar />
     <Announcement />
     <Wrapper>
       <ImageContainer>
-        <Image src="https://i.ibb.co/S6qMxwr/jean.jpg" />
+        <Image src={product.img} />
       </ImageContainer>
       <InfoContainer>
-        <Title>Denim Jumpsuit</Title>
+        <Title>{product.title}</Title>
         <Desc>
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec
-          venenatis, dolor in finibus malesuada, lectus ipsum porta nunc, at
-          iaculis arcu nisi sed mauris. Nulla fermentum vestibulum ex, eget
-          tristique tortor pretium ut. Curabitur elit justo, consequat id
-          condimentum ac, volutpat ornare.
+          {product.desc}
         </Desc>
         <Price>$ 20</Price>
         <FilterContainer>
           <Filter>
             <FilterTitle>Color</FilterTitle>
-            <FilterColor color="black" />
-            <FilterColor color="darkblue" />
-            <FilterColor color="gray" />
+            {product.color.map((c)=>
+              <FilterColor color = {c} onClick={()=>setColor(c)}/>
+            )}
+            
           </Filter>
           <Filter>
-            <FilterTitle>Size</FilterTitle>
+            <FilterTitle onChange={(e)=>setSize(e.target.value)}>Size</FilterTitle>
             <FilterSize>
-              <FilterSizeOption>XS</FilterSizeOption>
-              <FilterSizeOption>S</FilterSizeOption>
-              <FilterSizeOption>M</FilterSizeOption>
-              <FilterSizeOption>L</FilterSizeOption>
-              <FilterSizeOption>XL</FilterSizeOption>
+              {product.size.map((s)=>
+                <FilterSizeOption>{s}</FilterSizeOption>
+              )}
             </FilterSize>
           </Filter>
         </FilterContainer>
         <AddContainer>
           <AmountContainer>
-            <RemoveIcon />
-            <Amount>1</Amount>
-            <AddIcon />
+            <RemoveIcon onClick={handleAmount("remove")}/>
+            <Amount>{amount}</Amount>
+            <AddIcon onClick={handleAmount("add")}/>
           </AmountContainer>
-          <Button>ADD TO CART</Button>
+          <Button onClick = {handleClick}>ADD TO CART</Button>
         </AddContainer>
       </InfoContainer>
     </Wrapper>
